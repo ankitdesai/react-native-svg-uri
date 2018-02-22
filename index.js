@@ -54,14 +54,14 @@ const RADIALG_ATTS = CIRCLE_ATTS.concat(['id', 'gradientUnits']);
 const STOP_ATTS = ['offset'];
 const ELLIPSE_ATTS = ['cx', 'cy', 'rx', 'ry'];
 
-const TEXT_ATTS = ['fontFamily', 'fontSize', 'fontWeight']
+const TEXT_ATTS = ['fontFamily', 'fontSize', 'fontWeight', 'textAnchor']
 
 const POLYGON_ATTS = ['points'];
 const POLYLINE_ATTS = ['points'];
 
 const COMMON_ATTS = ['fill', 'fillOpacity', 'stroke', 'strokeWidth', 'strokeOpacity', 'opacity',
     'strokeLinecap', 'strokeLinejoin',
-    'strokeDasharray', 'strokeDashoffset', 'x', 'y', 'rotate', 'scale', 'origin', 'originX', 'originY'];
+    'strokeDasharray', 'strokeDashoffset', 'x', 'y', 'rotate', 'scale', 'origin', 'originX', 'originY', 'transform', 'clipPath'];
 
 let ind = 0;
 
@@ -141,7 +141,18 @@ class SvgUri extends Component{
     return responseXML;
   }
 
+  // Remove empty strings from children array
+  trimElementChilden(children) {
+    for (child of children) {
+      if (typeof child === 'string') {
+        if (child.trim().length === 0)
+          children.splice(children.indexOf(child), 1);
+      }
+    }
+  }
+
   createSVGElement(node, childs){
+    this.trimElementChilden(childs);
     let componentAtts = {};
     const i = ind++;
     switch (node.nodeName) {
@@ -192,9 +203,6 @@ class SvgUri extends Component{
       return <Polyline key={i} {...componentAtts}>{childs}</Polyline>;
     case 'text':
       componentAtts = this.obtainComponentAtts(node, TEXT_ATTS);
-      if (componentAtts.y) {
-        componentAtts.y = fixYPosition(componentAtts.y, node)
-      }
       return <Text key={i} {...componentAtts}>{childs}</Text>;
     case 'tspan':
       componentAtts = this.obtainComponentAtts(node, TEXT_ATTS);
@@ -236,11 +244,6 @@ class SvgUri extends Component{
       return null;
     }
 
-    const textValue = node.nodeValue;
-    if (textValue) {
-      return textValue;
-    }
-
     // Process the xml node
     const arrayElements = [];
 
@@ -248,9 +251,14 @@ class SvgUri extends Component{
     // Recursive function.
     if (node.childNodes && node.childNodes.length > 0){
         for (let i = 0; i < node.childNodes.length; i++){
-          const nodo = this.inspectNode(node.childNodes[i]);
-          if (nodo != null) {
-            arrayElements.push(nodo);
+          const isTextValue = node.childNodes[i].nodeValue
+          if (isTextValue) {
+            arrayElements.push(node.childNodes[i].nodeValue)
+          } else {
+            const nodo = this.inspectNode(node.childNodes[i]);
+            if (nodo != null) {
+              arrayElements.push(nodo);
+            }
           }
         }
     }
